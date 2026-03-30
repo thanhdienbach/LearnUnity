@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Dictionary
@@ -12,6 +13,7 @@ namespace Dictionary
         {
             _friends.Add("Alice", new List<string>{"Glu"});
             Connect("Alice", "Bob");
+            Disconnect("Alice", "Glu");
 
             ToList(_friends);
         }
@@ -71,11 +73,83 @@ namespace Dictionary
                     continue;
                 }
 
-                if (!_friends.TryAdd(pair.person, new List<string>(pair.friends ?? new List<string>())))
+                var friendList = (pair.friends ?? new List<string>()).Distinct().ToList();
+                if (!_friends.TryAdd(pair.person, friendList))
                 {
                     Debug.LogWarning($"{pair.person} is duplicate");
                 }
             }
+        }
+
+        private bool IsValid()
+        {
+            var countDirty = 0;
+            foreach (var pair in _friends)
+            {
+                string person = pair.Key;
+                var friends = pair.Value;
+                
+                // 1. Person không null, person không rỗng
+                if (string.IsNullOrEmpty(person))
+                {
+                    Debug.LogWarning($"Invalid key detected (null or empty)");
+                    countDirty++;
+                }
+                
+                // 2. Friend không null, friend không rỗng
+                if (friends == null)
+                {
+                    Debug.LogWarning($"{person} has null friend list");
+                    countDirty++;
+                    continue;
+                }
+                for (int i = 0; i < friends.Count; i++)
+                {
+                    if (string.IsNullOrEmpty(friends[i]))
+                    {
+                        Debug.LogWarning($"{person} has invalid friend at index {i}"); 
+                        countDirty++;
+                    }
+                }
+                
+                // 3. Friend không duplicate
+                for (int i = 0; i < friends.Count; i++)
+                {
+                    for (int j = i + 1; j < friends.Count; j++)
+                    {
+                        if (friends[i] == friends[j])
+                        {
+                            Debug.LogWarning($"{person} has duplicate friend {friends[i]}");
+                            countDirty++;
+                        }
+                    }
+                }
+                
+                // 4. Không tự là bạn của bản thân
+                if (friends.Contains(person))
+                {
+                    Debug.LogWarning($"{person} is friend self");
+                    countDirty++;
+                }
+                
+                // 5. Phải là bạn của nhau
+                foreach (var friend in friends)
+                {
+                    if (string.IsNullOrEmpty(friend)) continue;
+                    if (!_friends.TryGetValue(friend, out var reverseList))
+                    {
+                        Debug.LogWarning($"{friend} missing key");
+                        countDirty++;
+                    }
+                    else if (!reverseList.Contains(person))
+                    {
+                        Debug.LogWarning($"{person} -> {friend} not symmetric");
+                        countDirty++;
+                    }
+                }
+            }
+            if (countDirty > 0) Debug.LogWarning($"Have {countDirty} dirty data");
+            return countDirty == 0;
         }
     }
     
