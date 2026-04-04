@@ -151,6 +151,49 @@ namespace Dictionary
             if (countDirty > 0) Debug.LogWarning($"Have {countDirty} dirty data");
             return countDirty == 0;
         }
+
+        private void FixData()
+        {
+            FixInvalidPair(_friends);
+            FixSymmetry(_friends);
+        }
+        // 1. Xóa key và value, xử lý value không hợp lệ
+        private void FixInvalidPair(Dictionary<string, List<string>> friends)
+        {
+            foreach (var key in friends.Keys.ToList())
+            {
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    friends.Remove(key);
+                    continue;
+                }
+                var list = friends[key] ??= new List<string>();
+                list.RemoveAll(string.IsNullOrWhiteSpace);
+                var set = new HashSet<string>();
+                list.RemoveAll(x => x == key); // Remove chính mình
+                list.RemoveAll(x => !set.Add(x)); // Remove duplicate
+            }
+        }
+        // 2. Xử lý symmetry
+        private void FixSymmetry(Dictionary<string, List<string>> friends)
+        {
+            foreach (var pair in friends.ToList())
+            {
+                var person = pair.Key;
+                var list = pair.Value;
+                foreach (var friend in list.ToList())
+                {
+                    if (!friends.TryGetValue(friend, out var reverseList))
+                    {
+                        friends[friend] = new List<string>() { person };
+                    }
+                    else if (!reverseList.Contains(person))
+                    {
+                        reverseList.Add(person);
+                    }
+                }
+            }
+        }
     }
     
     [System.Serializable]
