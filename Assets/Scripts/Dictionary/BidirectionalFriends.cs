@@ -7,11 +7,11 @@ namespace Dictionary
     public class BidirectionalFriends : MonoBehaviour
     {
         [SerializeField] private List<FriendData> friendsList;
-        private readonly Dictionary<string, List<string>> _friends = new Dictionary<string, List<string>>();
+        private readonly Dictionary<string, HashSet<string>> _friends = new Dictionary<string, HashSet<string>>();
 
         private void Start()
         {
-            _friends.Add("Alice", new List<string>{"Glu"});
+            _friends.Add("Alice", new HashSet<string>(){"Glu"});
             Connect("Alice", "Bob");
             Disconnect("Alice", "Glu");
 
@@ -27,11 +27,8 @@ namespace Dictionary
         }
         private void AddOneWay(string from, string to)
         {
-            if (_friends.TryGetValue(from, out var list))
-            {
-                if (!list.Contains(to)) list.Add(to);
-            }
-            else _friends.Add(from, new List<string> { to });
+            if (_friends.TryGetValue(from, out var  hast)) hast.Add(to);
+            else _friends.Add(from, new HashSet<string>(){ to });
         }
 
         private void Disconnect(string personA, string personB)
@@ -41,14 +38,14 @@ namespace Dictionary
         }
         private void RemoveOneWay(string from, string to)
         {
-            if (_friends.TryGetValue(from, out var list))
+            if (_friends.TryGetValue(from, out var hast))
             {
-                if (!list.Remove(to)) Debug.LogWarning($"{to} not found in {from}");
+                if (!hast.Remove(to)) Debug.LogWarning($"{to} not found in {from}");
             }
             else Debug.LogWarning($"{from} not found");
         }
 
-        private void ToList(Dictionary<string, List<string>> friends)
+        private void ToList(Dictionary<string, HashSet<string>> friends)
         {
             friendsList.Clear();
             foreach (var pair in friends)
@@ -56,7 +53,7 @@ namespace Dictionary
                 FriendData friend = new FriendData()
                 {
                     person = pair.Key,
-                    friends = new List<string>(pair.Value)
+                    Friends = new HashSet<string>(pair.Value)
                 };
                 friendsList.Add(friend);
             }
@@ -73,8 +70,8 @@ namespace Dictionary
                     continue;
                 }
 
-                var friendList = (pair.friends ?? new List<string>()).Distinct().ToList();
-                if (!_friends.TryAdd(pair.person, friendList))
+                var friendSet = (pair.Friends ?? new HashSet<string>());
+                if (!_friends.TryAdd(pair.person, friendSet))
                 {
                     Debug.LogWarning($"{pair.person} is duplicate");
                 }
@@ -103,17 +100,18 @@ namespace Dictionary
                     countDirty++;
                     continue;
                 }
-                for (int i = 0; i < friends.Count; i++)
+                /*for (int i = 0; i < friends.Count; i++)
                 {
                     if (string.IsNullOrEmpty(friends[i]))
                     {
                         Debug.LogWarning($"{person} has invalid friend at index {i}"); 
                         countDirty++;
                     }
-                }
+                }*/
+                friends.RemoveWhere(string.IsNullOrWhiteSpace);
                 
-                // 3. Friend không duplicate
-                for (int i = 0; i < friends.Count; i++)
+                // 3. Friend không duplicate => Hastset không thể duplicate
+                /*for (int i = 0; i < friends.Count; i++)
                 {
                     for (int j = i + 1; j < friends.Count; j++)
                     {
@@ -123,7 +121,7 @@ namespace Dictionary
                             countDirty++;
                         }
                     }
-                }
+                }*/
                 
                 // 4. Không tự là bạn của bản thân
                 if (friends.Contains(person))
@@ -158,7 +156,7 @@ namespace Dictionary
             FixSymmetry(_friends);
         }
         // 1. Xóa key và value, xử lý value không hợp lệ
-        private void FixInvalidPair(Dictionary<string, List<string>> friends)
+        private void FixInvalidPair(Dictionary<string, HashSet<string>> friends)
         {
             foreach (var key in friends.Keys.ToList())
             {
@@ -167,30 +165,24 @@ namespace Dictionary
                     friends.Remove(key);
                     continue;
                 }
-                var list = friends[key] ??= new List<string>();
-                list.RemoveAll(string.IsNullOrWhiteSpace);
-                var set = new HashSet<string>();
-                list.RemoveAll(x => x == key); // Remove chính mình
-                list.RemoveAll(x => !set.Add(x)); // Remove duplicate
+                var set = friends[key] ??= new HashSet<string>();
+                set.RemoveWhere(string.IsNullOrWhiteSpace);
+                set.RemoveWhere(x => x == key);
+                // set.RemoveAll(x => x == key); // Remove chính mình
+                // list.RemoveAll(x => !set.Add(x)); // Remove duplicate
             }
         }
         // 2. Xử lý symmetry
-        private void FixSymmetry(Dictionary<string, List<string>> friends)
+        private void FixSymmetry(Dictionary<string, HashSet<string>> friends)
         {
             foreach (var pair in friends.ToList())
             {
                 var person = pair.Key;
-                var list = pair.Value;
-                foreach (var friend in list.ToList())
+                var set = pair.Value;
+                foreach (var friend in set.ToHashSet())
                 {
-                    if (!friends.TryGetValue(friend, out var reverseList))
-                    {
-                        friends[friend] = new List<string>() { person };
-                    }
-                    else if (!reverseList.Contains(person))
-                    {
-                        reverseList.Add(person);
-                    }
+                    if (!friends.TryGetValue(friend, out var reverseSet)) friends[friend] = new HashSet<string>() { person };
+                    else reverseSet.Add(person);
                 }
             }
         }
@@ -200,6 +192,6 @@ namespace Dictionary
     public class FriendData
     {
         public string person;
-        public List<string> friends;
+        public HashSet<string> Friends;
     }
 }
