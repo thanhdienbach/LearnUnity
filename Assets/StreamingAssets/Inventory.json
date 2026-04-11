@@ -1,28 +1,28 @@
 {
     "items": [
         {
-            "id": 5,
-            "itemName": "Mana Valid",
-            "quantity": 10,
-            "isStackable": true
+            "id": 1,
+            "itemName": "Sword",
+            "quantity": 1,
+            "isStackable": false
+        },
+        {
+            "id": 2,
+            "itemName": "Shield",
+            "quantity": 1,
+            "isStackable": false
+        },
+        {
+            "id": 3,
+            "itemName": "Armor",
+            "quantity": 1,
+            "isStackable": false
         },
         {
             "id": 4,
-            "itemName": "Blood Valid",
-            "quantity": 10,
+            "itemName": "Blood Vial",
+            "quantity": 5,
             "isStackable": true
-        },
-        {
-            "id": 2,
-            "itemName": "Shield",
-            "quantity": 1,
-            "isStackable": false
-        },
-        {
-            "id": 2,
-            "itemName": "Shield",
-            "quantity": 1,
-            "isStackable": false
         }
     ]
 }
